@@ -1,0 +1,14 @@
+# Python bytecode (the __pycache__ folders)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables / Secrets (Important for later!)
+.env
+.venv
+env/
+venv/
+
+# Operating system files
+.DS_Store
+Thumbs.db

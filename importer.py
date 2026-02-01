@@ -1,7 +1,7 @@
 import csv
 import asyncio
 from models import Transaction
-from database import collection  # <--- IMPORT THIS
+from redis_client import redis_client  # Import the connection you just made
 
 is_running = False
 
@@ -17,17 +17,17 @@ async def start_import_logic(file_path: str):
                 print("🛑 Importer stopped manually.")
                 break
             
-            # 1. Validate using Pydantic
+            # 1. Validate the row using Pydantic
             transaction = Transaction(**row)
             
-            # 2. THE MISSING PIECE: Save to MongoDB
-            # Convert Pydantic model to a dictionary for Mongo
-            await collection.insert_one(transaction.model_dump()) 
+            # 2. PUSH to Redis List
+            # We convert the object to a JSON string and put it in a list called 'transaction_queue'
+            await redis_client.lpush("transaction_queue", transaction.model_dump_json())
             
-            # 3. Log it
-            print(f"✅ Saved to DB: {transaction.amount}")
+            # 3. Updated Log
+            print(f"🚀 Queued in Redis: {transaction.amount}")
             
-            # 4. Async Sleep
+            # 4. Respect the sleep_ms from the CSV
             wait_time = transaction.sleep_ms / 1000
             await asyncio.sleep(wait_time)
 

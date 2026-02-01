@@ -9,6 +9,7 @@ uvicorn = "*"
 pydantic = "*"
 motor = "*"
 pydantic-settings = "*"
+redis = "*"
 
 [dev-packages]
 

@@ -1,0 +1,137 @@
+
+
+# 📊 Transaction Importer & Analytics Pipeline
+
+A high-performance data engineering pipeline designed to ingest, aggregate, and persist 5,000 financial transactions using a **Hybrid Storage Strategy**. Built with FastAPI, Redis, and MongoDB.
+
+## ✨ Features
+
+### ⚡ High-Speed Ingestion
+
+* **O(1) Aggregation**: Uses Redis `HINCRBYFLOAT` for sub-millisecond real-time daily totals.
+* **Asynchronous Producer/Consumer**: Decouples data ingestion from database persistence using Redis lists as a message broker.
+* **Bulk Upserts**: Minimizes MongoDB overhead by grouping thousands of transactions into consolidated daily summaries.
+
+### 🛠️ Background Processing
+
+* **Automated Archiving**: A dedicated worker service monitors the "hot" Redis cache and persists data to MongoDB every 10 seconds.
+* **Smart Cleanup**: Automatically purges Redis keys older than 7 days to maintain a lean memory footprint.
+* **Fault Tolerance**: Implements `asyncio` error handling to ensure the sync loop remains alive during network blips.
+
+### 🐳 Production Ready
+
+* **Dockerized Microservices**: Separated services for API, Worker, Cache, and Database.
+* **Live Observability**: Real-time logging of synchronization metrics and persistence counts.
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────┐      HTTP POST      ┌──────────────────┐
+│   CSV Importer  │────────────────────▶│   FastAPI App    │
+│  (Python Script)│                     │   (Port: 8080)   │
+└─────────────────┘                     └──────────────────┘
+                                                 │
+                                                 │ Push to Queue
+                                                 ▼
+┌─────────────────┐    Sync & Cleanup   ┌──────────────────┐
+│  MongoDB Store  │◀────────────────────│  Python Worker   │
+│ (Port: 27017)   │      (10s Loop)     │ (Asyncio/Motor)  │
+└─────────────────┘                     └──────────────────┘
+                                                 │
+                                                 │ Aggregate
+                                                 ▼
+                                        ┌──────────────────┐
+                                        │   Redis Cache    │
+                                        │   (Port: 6379)   │
+                                        └──────────────────┘
+
+```
+
+## 📦 Tech Stack
+
+| Component | Technology |
+| --- | --- |
+| **Backend** | FastAPI, Python 3.10+ |
+| **Task Queue** | Redis (List-based Queue) |
+| **Real-time Store** | Redis (Hashes for Daily Stats) |
+| **Historical DB** | MongoDB (Document Store) |
+| **Concurrency** | Asyncio, Motor (Async Mongo Driver) |
+| **Orchestration** | Docker, Docker Compose |
+
+## 🚀 Quick Start (Local Deployment)
+
+### 1. Clone & Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/lamaDayoub/transaction_importer.git
+cd transaction_importer
+
+# Initialize environment (Optional)
+cp .env.example .env
+
+```
+
+### 2. Launch Infrastructure
+
+Start all microservices in detached mode. This automatically triggers the Background Worker.
+
+```bash
+docker-compose up --build -d
+
+```
+
+
+
+## 🔍 Monitoring & Validation
+
+### Live Sync Logs
+
+Watch the Worker perform real-time persistence and cleanup:
+
+```bash
+docker logs -f transaction_importer-worker-1
+
+```
+
+### Database Verification
+
+**Check MongoDB Collection:**
+
+```bash
+docker exec -it transaction_importer-mongodb-1 mongosh --eval "db.getSiblingDB('transaction_db').getCollectionNames()"
+
+
+```
+
+**Check API Stats:**
+Access the auto-generated Swagger UI: `http://localhost:8080/docs`
+
+## 📁 Project Structure
+
+```text
+transaction_importer/
+├── docker-compose.yml       # Infrastructure orchestration
+├── Dockerfile               # Container definition
+├── main.py                  # FastAPI Entry point
+├── worker.py                # Async Sync & Cleanup Loop
+├── database.py              # MongoDB/Motor configuration
+├── redis_client.py          # Redis connection logic
+├── models.py                # Data schemas
+├── importer.py              # CSV processing script
+├── transactions_1_month.csv # Sample dataset
+├── Pipfile                  # Dependency management
+└── .gitignore               # Version control exclusions
+
+```
+
+## 🛠️ Docker Services
+
+| Service | Host Port | Description |
+| --- | --- | --- |
+| `app` | 8080 | FastAPI REST Interface |
+| `worker` | -- | Background Sync & Redis Cleanup |
+| `mongodb` | 27017 | Permanent Historical Storage |
+| `redis` | 6379 | High-speed Queue & Aggregator |
+
+---

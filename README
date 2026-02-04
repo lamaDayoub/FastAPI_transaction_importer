@@ -1,31 +1,33 @@
 
 
+---
+
 # 📊 Transaction Importer & Analytics Pipeline
 
-A high-performance data engineering pipeline designed to ingest, aggregate, and persist 5,000 financial transactions using a **Hybrid Storage Strategy**. Built with FastAPI, Redis, and MongoDB.
+A production-grade data engineering pipeline designed to handle high-frequency ingestion of financial transactions. It utilizes a **Hybrid Storage Strategy**: leveraging **Redis** for sub-millisecond real-time aggregation and **MongoDB** for reliable, long-term historical persistence.
 
 ## ✨ Features
 
 ### ⚡ High-Speed Ingestion
 
-* **O(1) Aggregation**: Uses Redis `HINCRBYFLOAT` for sub-millisecond real-time daily totals.
-* **Asynchronous Producer/Consumer**: Decouples data ingestion from database persistence using Redis lists as a message broker.
-* **Bulk Upserts**: Minimizes MongoDB overhead by grouping thousands of transactions into consolidated daily summaries.
+* **O(1) Aggregation** - Uses Redis `HINCRBYFLOAT` for sub-millisecond real-time daily totals.
+* **Asynchronous Processing** - Decouples data ingestion from persistence using Redis lists as a high-speed message broker.
+* **Bulk Persistence** - Minimizes MongoDB I/O overhead by grouping thousands of transactions into consolidated daily summaries via the background worker.
 
-### 🛠️ Background Processing
+### 🛠️ Background Archiving
 
-* **Automated Archiving**: A dedicated worker service monitors the "hot" Redis cache and persists data to MongoDB every 10 seconds.
-* **Smart Cleanup**: Automatically purges Redis keys older than 7 days to maintain a lean memory footprint.
-* **Fault Tolerance**: Implements `asyncio` error handling to ensure the sync loop remains alive during network blips.
+* **Automated Sync** - A dedicated worker service monitors the "hot" Redis cache and persists data to MongoDB every 10 seconds.
+* **Smart Cleanup** - Automatically purges Redis keys older than 7 days to maintain a lean memory footprint.
+* **Resilient Design** - Uses `asyncio` error handling to ensure the sync loop remains alive during network blips or database restarts.
 
-### 🐳 Production Ready
+### 🐳 Infrastructure
 
-* **Dockerized Microservices**: Separated services for API, Worker, Cache, and Database.
-* **Live Observability**: Real-time logging of synchronization metrics and persistence counts.
+* **Service Separation** - Multi-container setup separating HTTP (API), Background Worker, Cache (Redis), and Database (MongoDB).
+* **Deterministic Environments** - Built with Docker and Pipenv (`Pipfile.lock`) to ensure "it works on my machine" translates to "it works in production."
 
 ## 🏗️ System Architecture
 
-```
+```text
 ┌─────────────────┐      HTTP POST      ┌──────────────────┐
 │   CSV Importer  │────────────────────▶│   FastAPI App    │
 │  (Python Script)│                     │   (Port: 8080)   │
@@ -51,66 +53,18 @@ A high-performance data engineering pipeline designed to ingest, aggregate, and 
 
 | Component | Technology |
 | --- | --- |
-| **Backend** | FastAPI, Python 3.10+ |
+| **Backend Framework** | FastAPI (Python 3.12) |
 | **Task Queue** | Redis (List-based Queue) |
 | **Real-time Store** | Redis (Hashes for Daily Stats) |
 | **Historical DB** | MongoDB (Document Store) |
-| **Concurrency** | Asyncio, Motor (Async Mongo Driver) |
-| **Orchestration** | Docker, Docker Compose |
-
-## 🚀 Quick Start (Local Deployment)
-
-### 1. Clone & Setup
-
-```bash
-# Clone the repository 
-git clone https://github.com/lamaDayoub/FastAPI_transaction_importer
-cd FastAPI_transaction_importer
-
-# Initialize environment (Optional)
-cp .env.example .env
-
-```
-
-### 2. Launch Infrastructure
-
-Start all microservices in detached mode. This automatically triggers the Background Worker.
-
-```bash
-docker-compose up --build -d
-
-```
-
-
-
-## 🔍 Monitoring & Validation
-
-### Live Sync Logs
-
-Watch the Worker perform real-time persistence and cleanup:
-
-```bash
-docker logs -f transaction_importer-worker-1
-
-```
-
-### Database Verification
-
-**Check MongoDB Collection:**
-
-```bash
-docker exec -it transaction_importer-mongodb-1 mongosh --eval "db.getSiblingDB('transaction_db').getCollectionNames()"
-
-
-```
-
-**Check API Stats:**
-Access the auto-generated Swagger UI: `http://localhost:8080/docs`
+| **Database Drivers** | Motor (Async MongoDB), Redis-py |
+| **Containerization** | Docker, Docker Compose |
+| **Package Management** | Pipenv (Pipfile) |
 
 ## 📁 Project Structure
 
 ```text
-transaction_importer/
+FastAPI_transaction_importer/:
 ├── docker-compose.yml       # Infrastructure orchestration
 ├── Dockerfile               # Container definition
 ├── main.py                  # FastAPI Entry point
@@ -125,13 +79,63 @@ transaction_importer/
 
 ```
 
-## 🛠️ Docker Services
+## 🚀 Quick Start (Local Deployment)
 
-| Service | Host Port | Description |
-| --- | --- | --- |
-| `app` | 8080 | FastAPI REST Interface |
-| `worker` | -- | Background Sync & Redis Cleanup |
-| `mongodb` | 27017 | Permanent Historical Storage |
-| `redis` | 6379 | High-speed Queue & Aggregator |
+### 1. Installation
+
+```bash
+# Clone the repository 
+git clone https://github.com/lamaDayoub/FastAPI_transaction_importer
+cd FastAPI_transaction_importer
+
+# Initialize environment (Optional)
+cp .env.example .env
+
+```
+
+### 2. Launch Services
+
+Build and start all microservices in detached mode. This triggers the API and the Background Worker automatically.
+
+```bash
+docker-compose up --build -d
+
+```
+
+
+
+## 🔍 Monitoring & API
+
+### Watch Live Sync Logs
+
+Monitor the worker's heartbeat as it persists data from Redis to MongoDB:
+
+```bash
+docker logs -f transaction_importer-worker-1
+
+```
+
+### Database Verification
+
+**Check MongoDB Collections:**
+
+```bash
+docker exec -it transaction_importer-mongodb-1 mongosh --eval "db.getSiblingDB('transaction_db').getCollectionNames()"
+
+```
+
+**Check API Documentation:**
+Access the auto-generated Swagger UI to test endpoints:
+`http://localhost:8080/docs`
+
+## 🐳 Docker Service Mapping
+
+| Service | Container Port | Host Port | Description |
+| --- | --- | --- | --- |
+| `app` | 8000 | **8080** | FastAPI REST API |
+| `worker` | -- | -- | Background Sync & Cleanup |
+| `mongodb` | 27017 | **27017** | Permanent Document Store |
+| `redis` | 6379 | **6379** | Message Broker & Cache |
 
 ---
+

@@ -7,13 +7,13 @@ WORKDIR /app
 # Install pipenv
 RUN pip install pipenv
 
-# Copy dependency files first (better for caching)
+# Copy dependency files first 
 COPY Pipfile Pipfile.lock ./
 
 # Install dependencies directly into the container's system
 RUN pipenv install --system --deploy
 
-# Copy the rest of your code
+# Copy the rest of  code
 COPY . .
 
 # Expose the port FastAPI runs on

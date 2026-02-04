@@ -63,9 +63,9 @@ A high-performance data engineering pipeline designed to ingest, aggregate, and 
 ### 1. Clone & Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/lamaDayoub/transaction_importer.git
-cd transaction_importer
+# Clone the repository 
+git clone https://github.com/lamaDayoub/FastAPI_transaction_importer
+cd FastAPI_transaction_importer
 
 # Initialize environment (Optional)
 cp .env.example .env

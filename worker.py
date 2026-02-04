@@ -5,6 +5,7 @@ from redis_client import redis_client
 from database import collection
 
 async def run_worker():
+    await asyncio.sleep(0.1)
     print(" Worker: Consuming transactions...")
     while True:
         try:
@@ -57,7 +58,7 @@ async def sync_to_mongodb():
                 if key_date < threshold_date:
                     await redis_client.delete(key)
             
-            print(f" MongoDB Sync: Persisted {dump_count} items. Cleanup complete.")
+            print(f" MongoDB Sync: Persisted {dump_count} items. Cleanup complete.", flush=True)
             
         except Exception as e:
             print(f"Sync Error: {e}")

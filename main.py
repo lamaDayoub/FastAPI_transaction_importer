@@ -3,21 +3,22 @@ from importer import start_import_logic, stop_import_logic
 from redis_client import redis_client
 from database import collection
 from datetime import datetime, timedelta
+import asyncio
 
+from contextlib import asynccontextmanager
 
-app = FastAPI()
-
-
-@app.post("/start")
-async def start(background_tasks: BackgroundTasks):
-    # This sends the function to the background
-    background_tasks.add_task(start_import_logic, "sample_transactions.csv")
-    return {"message": "Importer started in the background"}
-
-@app.post("/stop")
-async def stop():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # This runs on startup
+    asyncio.create_task(start_import_logic("transactions_1_month.csv"))
+    yield
+    # This runs on shutdown
     stop_import_logic()
-    return {"message": "Stop signal sent"}
+
+app = FastAPI(lifespan=lifespan)
+
+
+
 
 @app.get("/")
 def home():
@@ -74,6 +75,3 @@ async def get_stats(
         print(f"API Error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-@app.get("/")
-def home():
-    return {"message": "Transaction Importer API Active"}

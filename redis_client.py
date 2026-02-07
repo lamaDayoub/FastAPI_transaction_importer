@@ -1,7 +1,7 @@
 import os
 import redis.asyncio as redis
 
-# Inside Docker, the hostname is 'redis' (from your docker-compose)
+# Inside Docker, the hostname is 'redis' (from  docker-compose)
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
 # Setup the async connection
